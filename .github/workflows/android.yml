@@ -3,7 +3,8 @@ name: Build Qibla Azkar APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
@@ -20,17 +21,15 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3 background: 
-    
+        uses: android-actions/setup-android@v3
 
       - name: Extract Android project
         run: unzip -o QiblaAzkar_Android_Project.zip -d .
 
       - name: Build APK
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: '8.9'
-          arguments: -p QiblaAzkarAndroid assembleDebug
+        run: |
+          chmod +x QiblaAzkarAndroid/gradlew
+          QiblaAzkarAndroid/gradlew -p QiblaAzkarAndroid assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
