@@ -1,52 +1,58 @@
 name: Build Qibla Azkar APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Find and extract project
-        run: |
-          ZIP=$(find . -maxdepth 2 -name "QiblaAzkar_Android_Project.zip" | head -n 1)
-          if [ -z "$ZIP" ]; then
-            echo "Android project ZIP not found"
-            exit 1
-          fi
-          mkdir android-project
-          unzip -q "$ZIP" -d android-project
-          find android-project -name gradlew -type f
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
 
-      - name: Build debug APK
+      - name: Extract Project ZIP
         run: |
-          GRADLEW=$(find android-project -name gradlew -type f | head -n 1)
-          if [ -z "$GRADLEW" ]; then
-            echo "Gradle wrapper not found"
+          if [ -f QiblaAzkar_Android_Project.zip ]; then
+            mkdir -p android-project
+            unzip -o QiblaAzkar_Android_Project.zip -d android-project
+          fi
+
+      - name: Find Android Project
+        run: |
+          SETTINGS=$(find . -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)
+          if [ -z "$SETTINGS" ]; then
+            echo "Android Gradle project not found!"
+            find . -maxdepth 4 -type f | head -n 100
             exit 1
           fi
-          chmod +x "$GRADLEW"
-          cd "$(dirname "$GRADLEW")"
-          ./gradlew assembleDebug
+          echo "PROJECT_DIR=$(dirname "$SETTINGS")" >> $GITHUB_ENV
+          echo "Found project: $SETTINGS"
+
+      - name: Build Debug APK
+        run: |
+          gradle -p "$PROJECT_DIR" assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Qibla-Azkar-APK
-          path: android-project/**/app/build/outputs/apk/debug/*.apk 
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error 
