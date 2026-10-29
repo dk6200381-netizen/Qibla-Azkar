@@ -20,9 +20,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-  run: |
-    yes | sdkmanager --licenses
-    sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" 
+        uses: android-actions/setup-android@v3 
 
       - name: Extract Android project
         run: unzip -o QiblaAzkar_Android_Project.zip -d .
