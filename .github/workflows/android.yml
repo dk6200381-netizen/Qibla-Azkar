@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -21,18 +21,32 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
-      - name: Extract Android project
-        run: unzip -o QiblaAzkar_Android_Project.zip -d .
-
-      - name: Build APK
+      - name: Find and extract project
         run: |
-          chmod +x QiblaAzkarAndroid/gradlew
-          QiblaAzkarAndroid/gradlew -p QiblaAzkarAndroid assembleDebug
+          ZIP=$(find . -maxdepth 2 -name "QiblaAzkar_Android_Project.zip" | head -n 1)
+          if [ -z "$ZIP" ]; then
+            echo "Android project ZIP not found"
+            exit 1
+          fi
+          mkdir android-project
+          unzip -q "$ZIP" -d android-project
+          find android-project -name gradlew -type f
+
+      - name: Build debug APK
+        run: |
+          GRADLEW=$(find android-project -name gradlew -type f | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "Gradle wrapper not found"
+            exit 1
+          fi
+          chmod +x "$GRADLEW"
+          cd "$(dirname "$GRADLEW")"
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Qibla-Azkar-APK
-          path: QiblaAzkarAndroid/app/build/outputs/apk/debug/*.apk 
+          path: android-project/**/app/build/outputs/apk/debug/*.apk 
